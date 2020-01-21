@@ -1,0 +1,294 @@
+---
+title: "Munz2009"
+date: "August 5, 2016"
+output: html_document
+runtime: shiny
+---
+
+## RE: When Zombies Attack!
+
+```{r, echo=FALSE, warning=FALSE, out.extra=FALSE}
+#WHEN ZOMBIES ATTACK!: MATHEMATICAL MODELLING OF AN OUTBREAK OF ZOMBIE INFECTION
+#Philip Munz1∗, Ioan Hudea1†, Joe Imad2‡, Robert J. Smith?3§
+#1School of Mathematics and Statistics, Carleton University,
+#1125 Colonel By Drive, Ottawa, ON K1S 5B6, Canada 2Department of Mathematics, #The University of Ottawa,
+#585 King Edward Ave, Ottawa ON K1N 6N5, Canada
+#2Department of Mathematics and Faculty of Medicine, The University of Ottawa, #585 King Edward Ave, Ottawa ON K1N 6N5, Canada
+
+#In: Infectious Disease Modelling Research Progress ISBN 978-1-60741-347-9 #Editors: J.M. Tchuenche and C. Chiyaka, pp. 133-15⃝c0 2009 Nova Science #Publishers, Inc.
+
+invisible({
+  packs <- list('deSolve', 'ggplot2')
+  lapply(packs, function(pak) do.call('library', list(pak, warn.conflicts=FALSE, quietly=TRUE)))
+})
+
+## Vars from the text are different from my choices
+## p = π
+## s = δ
+## b = β
+## r = ζ
+## a = α
+## k = κ
+## q = γ
+## c = c
+
+## SZR
+times <- seq(0, 20, by = 0.1)
+state <- c(S=500,Z=0,R=0)
+params <- c(p=0,s=0,b=0,r=0,a=0)
+SZR <- function(t, state, params) {
+  with(as.list(c(state, params)),{
+    dS = p - b*S*Z - s*S
+    dZ = b*S*Z + r*R - a*S*Z
+    dR = s*S + a*S*Z - r*R
+    list(c(dS, dZ, dR))
+  })
+}
+SZR.out <- ode(y = state, times = times, func = SZR, parms = params)
+
+
+## SIZR
+times <- seq(0, 20, by = 0.1)
+state <- c(S=500,Z=0,R=0, I=0)
+params <- c(p=0,s=0,b=0,r=0,a=0)
+SIZR <- function(t, state, params) {
+  with(as.list(c(state, params)),{
+    dS = p - b*S*Z - s*S
+    dI = b*S*Z - p*I - s*I
+    dZ = p*I + r*R - a*S*Z
+    dR = s*S + + s*I + a*S*Z - r*R
+    list(c(dS, dZ, dR, dI))
+  })
+}
+SIZR.out <- ode(y = state, times = times, func = SIZR, parms = params)
+
+
+## SIZRQ
+times <- seq(0, 20, by = 0.1)
+state <- c(S=500, Z=0, R=0, I=0, Q=0)
+params <- c(p=0, s=0, b=0, r=0, a=0, k=0, q=0)
+SIZRQ <- function(t, state, params) {
+  with(as.list(c(state, params)),{
+    dS = p - b*S*Z - s*S
+    dI = b*S*Z - p*I - s*I - k*I
+    dZ = p*I + r*R - a*S*Z - s*Z
+    dR = s*S + + s*I + a*S*Z - r*R + q*Q
+    dQ = k*I + s*Z - q*Q
+    list(c(dS, dZ, dR, dI, dQ))
+  })
+}
+SIZRQ.out <- ode(y = state, times = times, func = SIZRQ, parms = params)
+
+
+## SIZRT
+times <- seq(0, 20, by = 0.1)
+state <- c(S=500,Z=0,R=0, I=0)
+params <- c(p=0,s=0,b=0,r=0,a=0, c=0)
+SIZRT <- function(t, state, params) {
+  with(as.list(c(state, params)),{
+    dS = p - b*S*Z - s*S + c*Z
+    dI = b*S*Z - p*I - s*I
+    dZ = p*I + r*R - a*S*Z - c*Z
+    dR = s*S + + s*I + a*S*Z - r*R
+    list(c(dS, dZ, dR, dI))
+  })
+}
+SIZRT.out <- ode(y = state, times=times, func=SIZRT, parms=params)
+
+compile.SZR <- observeEvent(input$SZR == TRUE, {
+  times <<- seq(0, 20, by = 0.1)
+  state <<- c(S=500, Z=0, R=0)
+  params <<- c(p=0, s=0, b=0, r=0, a=0)
+  data <- as.data.frame(ode(y = state, times = times, func = SZR, parms = params))
+  output$viewSZR.S <- {
+    renderPlot(qplot(x=time, y=S, data=data))
+  }
+  output$viewSZR.Z <- {
+    renderPlot(qplot(x=time, y=Z, data=data))
+  }
+  output$viewSZR.R <- {
+    renderPlot(qplot(x=time, y=R, data=data))
+  }
+})
+
+compile.SIZR <- observeEvent(input$SIZR == TRUE, {
+  times <- seq(0, 20, by = 0.01)
+  state <- c(S=500,Z=0,R=0, I=0)
+  params <- c(p=0,s=0,b=0,r=0,a=0)
+  data <- as.data.frame(ode(y = state, times = times, func = SIZR, parms = params))
+  output$viewSIZR.S <- {
+    renderPlot(qplot(x=time, y=S, data=data))
+  }
+  output$viewSIZR.I <- {
+    renderPlot(qplot(x=time, y=I, data=data))
+  }
+  output$viewSIZR.Z <- {
+    renderPlot(qplot(x=time, y=Z, data=data))
+  }
+  output$viewSIZR.R <- {
+    renderPlot(qplot(x=time, y=R, data=data))
+  }
+})
+
+compile.SIZRQ <- observeEvent(input$SIZRQ == TRUE, {
+  times <- seq(0, 20, by = 0.01)
+  state <- c(S=500, Z=0, R=0, I=0, Q=0)
+  params <- c(p=0, s=0, b=0, r=0, a=0, k=0, q=0)
+  data <- as.data.frame(ode(y = state, times = times, func = SIZRQ, parms = params))
+  output$viewSIZRQ.S <- {
+    renderPlot(qplot(x=time, y=S, data=data))
+  }
+  output$viewSIZRQ.I <- {
+    renderPlot(qplot(x=time, y=I, data=data))
+  }
+  output$viewSIZRQ.Z <- {
+    renderPlot(qplot(x=time, y=Z, data=data))
+  }
+  output$viewSIZRQ.R <- {
+    renderPlot(qplot(x=time, y=R, data=data))
+  }
+  output$viewSIZRQ.Q <- {
+    renderPlot(qplot(x=time, y=Q, data=data))
+  }
+})
+
+compile.SIZRT <- observeEvent(input$SIZRT == TRUE, {
+  times <- seq(0, 20, by = 0.01)
+  state <- c(S=500,Z=0.1,R=0, I=0)
+  params <- c(p=0,s=0,b=0,r=0,a=0,c=0)
+  data <- as.data.frame(ode(y = state, times = times, func = SIZRT, parms = params))
+  output$viewSIZRT.S <- {
+    renderPlot(qplot(x=time, y=S, data=data))
+  }
+  output$viewSIZRT.I <- {
+    renderPlot(qplot(x=time, y=I, data=data))
+  }
+  output$viewSIZRT.Z <- {
+    renderPlot(qplot(x=time, y=Z, data=data))
+  }
+  output$viewSIZRT.R <- {
+    renderPlot(qplot(x=time, y=R, data=data))
+  }
+})
+
+sliders.1 <- list(
+        h3('Params'),
+        sliderInput('pi', HTML('&Pi; :'), min=0, max=1000, value=0, step=100),
+        sliderInput('rho', HTML('&rho; :'), min=0, max=2, value=0, step=0.01),
+        sliderInput('zeta', HTML('&zeta; :'), min=0, max=2, value=0, step=0.01),
+        sliderInput('alpha', HTML('&alpha; :'), min=0, max=2, value=0, step=0.01),
+        sliderInput('delta', HTML('&delta; :'), min=0, max=2, value=0, step=0.01),
+        sliderInput('beta', HTML('&beta; :'), min=0, max=1, value=0, step=0.001),
+        sliderInput('c', HTML('c :'), min=0, max=2, value=0, step=0.01),
+        sliderInput('k', HTML('k :'), min=0, max=2, value=0, step=0.01),
+        sliderInput('q', HTML('q :'), min=0, max=2, value=0, step=0.01),
+        br(),br()
+      )
+sliders.2 <- list(
+        h3('State'),
+        sliderInput('S', 'S', min=0, max=1000, value=500),
+        sliderInput('I', 'I', min=0, max=1000, value=0),
+        sliderInput('Z', 'Z', min=0, max=1000, value=0),
+        sliderInput('R', 'R', min=0, max=1000, value=0),
+        sliderInput('Q', 'Q', min=0, max=1000, value=0),
+        actionButton(inputId='compile', label='Compile model'),
+        br(),br()
+      )
+
+sidebarLayout(
+  sidebarPanel(
+    splitLayout(
+      sliders.1,
+      sliders.2
+    )
+  ),
+  mainPanel(
+    tabsetPanel(
+      tabPanel(title='SZR', plotOutput('viewSZR.S'), plotOutput('viewSZR.Z'), plotOutput('viewSZR.R'), value='SZR'),
+      tabPanel(title='SIZR', plotOutput('viewSIZR.S'), plotOutput('viewSIZR.I'), plotOutput('viewSIZR.Z'), plotOutput('viewSIZR.R'), value='SIZR'),
+      tabPanel(title='SIZRQ', plotOutput('viewSIZRQ.S'), plotOutput('viewSIZRQ.I'), plotOutput('viewSIZRQ.Z'), plotOutput('viewSIZRQ.R'), plotOutput('viewSIZRQ.Q'), value='SIZRQ'),
+      tabPanel(title='SIZRT', plotOutput('viewSIZRT.S'), plotOutput('viewSIZRT.I'), plotOutput('viewSIZRT.Z'), plotOutput('viewSIZRT.R'), plotOutput('viewSIZRT.T'), value='SIZRT'),
+      id='tabs'
+    )
+  )
+)
+
+observeEvent(input$compile, {
+  tab.selected <- input$tabs
+  op.model <- sprintf('view%s', tab.selected)
+  inputs <-  list(pi=input$pi,beta=input$beta, zeta=input$zeta,rho=input$rho,alpha=input$alpha,delta=input$delta,k=input$k,q=input$q,c=input$c,S=input$S,I=input$I,Z=input$Z,R=input$R,Q=input$Q,T=input$T)
+  pmodels <- list(SZR =  c(p=inputs$pi, s=inputs$delta, r=inputs$zeta, a=inputs$alpha, b=inputs$beta),
+                  SIZR = c(p=inputs$pi, s=inputs$delta, r=inputs$zeta, a=inputs$alpha, b=inputs$beta),
+                  SIZRQ= c(p=inputs$pi, s=inputs$delta, r=inputs$zeta, a=inputs$alpha, b=inputs$beta, k=inputs$k, q=inputs$q), 
+                  SIZRT= c(p=input$pi, s=input$delta, r=input$zeta, a=input$alpha, b=input$beta, c=input$c))
+  smodels <- list(SZR  = c(S=inputs$S, Z=inputs$Z, R=inputs$R), 
+                  SIZR = c(S=inputs$S, I=inputs$I, Z=inputs$Z, R=inputs$R), 
+                  SIZRQ= c(S=inputs$S, I=inputs$I, Z=inputs$Z, R=inputs$R, Q=inputs$Q),
+                  SIZRT= c(S=inputs$S, I=inputs$I, Z=inputs$Z, R=inputs$R))
+  params <- pmodels[[tab.selected]]
+  state <- smodels[[tab.selected]]
+  
+  errorData <- data.frame(time=NA,S=NA,I=NA,Z=NA,R=NA,Q=NA,T=NA)
+  data <- as.data.frame(ode(y = smodels[[tab.selected]], times = times, func = get(tab.selected), parms = pmodels[[tab.selected]]))
+
+  if(tab.selected=='SZR'){
+    output$viewSZR.S <- {
+      renderPlot(qplot(x=time, y=S, data=data))
+    }
+    output$viewSZR.Z <- {
+      renderPlot(qplot(x=time, y=Z, data=data))
+    }
+    output$viewSZR.R <- {
+      renderPlot(qplot(x=time, y=R, data=data))
+    }
+  }
+  if(tab.selected=='SIZR'){
+    output$viewSIZR.S <- {
+      renderPlot(qplot(x=time, y=S, data=data))
+    }
+    output$viewSIZR.I <- {
+      renderPlot(qplot(x=time, y=I, data=data))
+    }
+    output$viewSIZR.Z <- {
+      renderPlot(qplot(x=time, y=Z, data=data))
+    }
+    output$viewSIZR.R <- {
+      renderPlot(qplot(x=time, y=R, data=data))
+    }
+  }
+  if(tab.selected=='SIZRQ'){
+    output$viewSIZRQ.S <- {
+      renderPlot(qplot(x=time, y=S, data=data))
+    }
+    output$viewSIZRQ.I <- {
+      renderPlot(qplot(x=time, y=I, data=data))
+    }
+    output$viewSIZRQ.Z <- {
+      renderPlot(qplot(x=time, y=Z, data=data))
+    }
+    output$viewSIZRQ.R <- {
+      renderPlot(qplot(x=time, y=R, data=data))
+    }
+    output$viewSIZRQ.Q <- {
+      renderPlot(qplot(x=time, y=Q, data=data))
+    }
+  }
+  
+  if(tab.selected=='SIZRT'){
+    output$viewSIZRT.S <- {
+      renderPlot(qplot(x=time, y=S, data=data))
+    }
+    output$viewSIZRT.I <- {
+      renderPlot(qplot(x=time, y=I, data=data))
+    }
+    output$viewSIZRT.Z <- {
+      renderPlot(qplot(x=time, y=Z, data=data))
+    }
+    output$viewSIZRT.R <- {
+      renderPlot(qplot(x=time, y=R, data=data))
+    }
+  }
+})
+
+```
+
